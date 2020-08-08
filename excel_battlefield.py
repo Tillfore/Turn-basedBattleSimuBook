@@ -25,7 +25,10 @@ class XlUnit(object):
 
 def main():
     """这个模块通过xlwings直接和EXCEL交互"""
-    wb = xw.books.active
+    try:
+        wb = xw.books.active
+    except AttributeError:
+        wb = xw.Book()
     # wb = xw.Book('Stake4Esports.xlsx')
     try:
         sht = wb.sheets['Test']
