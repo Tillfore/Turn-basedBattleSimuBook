@@ -1,6 +1,7 @@
 import xlwings as xw
 import pywintypes
 import argparse
+import requests
 
 __requires__ = 'excel_rw==0.9.0'
 __version__ = '0.9.0-2020-8-9'
@@ -18,7 +19,7 @@ class XlUnit:
         self.__uid = uid
 
 
-class UserCommandParser():
+class UserCommandParser:
     """用户指令"""
 
     def __init__(self):
@@ -27,42 +28,55 @@ class UserCommandParser():
         subparsers = self.parser.add_subparsers()
         subparsers.required = True
 
-        parser_a = subparsers.add_parser('add', help='add help')
-        parser_a.add_argument('-x', type=int, default=1, help='x value')
-        parser_a.add_argument('-y', type=int, default=1, help='y value')
-        parser_a.add_argument('-z', action='store_const', default=1, const=2, help='y value')
-        parser_a.set_defaults(func=self.add)
+        parser_a = subparsers.add_parser('push battle', help='add help')
+        parser_a.set_defaults(func=push_battle)
 
-    def add(self, args):
-        r = (args.x + args.y)*args.z
-        print('x + y = ', r)
+
+def push_battle(sht):
+    if not sht:
+        sht = start_info()
+    url = 'http://192.168.0.230:12123/battle'
+    data = {'memberinfos': sht.range('A10').value}
+    r = requests.post(url, data)
+    sht.range('A11').value = "已提交"
+    sht.range('A12').value = r.text
 
 
 def operate(value):
     print(value)
 
 
-def main():
-    """这个模块通过xlwings直接和EXCEL交互"""
+def read_command_loop():
+    parser = UserCommandParser().parser
+    while True:
+        command = input()
+        args = parser.parse_args(command.split())
+        args.func(args)
+
+
+def start_info():
     try:
         wb = xw.books.active
     except AttributeError:
         wb = xw.Book()
     # wb = xw.Book('Stake4Esports.xlsx')
     try:
-        sht = wb.sheets['Test']
+        sht = wb.sheets['Info']
     except pywintypes.com_error:
-        sht = wb.sheets.add("Test")
+        sht = wb.sheets.add("Info")
     finally:
         print("excel_battlefield run success")
     sht.range('A1').value = [['模块名称', "excel_rw"], ['当前版本', __version__], ['简介', main.__doc__]]
-    print('模块名称:{0}\n当前版本:{1}'.format('excel_rw',  __version__))
+    sht.range('A9').value = "在A10输入阵容后push battle"
+    print('模块名称:{0}\n当前版本:{1}'.format('excel_rw', __version__))
+    return sht
 
-    parser = UserCommandParser().parser
-    while True:
-        command = input()
-        args = parser.parse_args(command.split())
-        args.func(args)
+
+def main():
+    """这个模块通过xlwings直接和EXCEL交互"""
+    sht = start_info()
+    push_battle(sht)
+    #read_command_loop()
 
 
 if __name__ == '__main__':

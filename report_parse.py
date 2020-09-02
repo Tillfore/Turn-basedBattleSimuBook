@@ -16,15 +16,26 @@ class BattleReport:
         self.defensers = """防守方英雄 list"""
         self.init = """战斗初始化 obj"""
         self.rounds = """战斗回合 obj"""
-        self.win = """胜负情况 bool"""
         self.stas = """战斗统计 obj"""
+        self.win = """胜负情况 bool"""
         self.attackers_final = """战斗结果 list"""
+        self.defensers_final = """战斗结果 list"""
         self.skills = """用过的技能 list"""
         self.buffs = """用过的BUFF list"""
         if type(battle_report_dict) == dict:
             self.__dict__ = self.dict2obj(battle_report_dict)
         elif type(battle_report_dict) == str:
             self.__dict__ = self.dict2obj(json.loads(battle_report_dict, strict=False))
+        try:
+            self.heroes_final = self.attackers_final
+            self.win = True
+        except AttributeError:
+            pass
+        try:
+            self.heroes_final = self.defensers_final
+            self.win = False
+        except AttributeError:
+            pass
 
     def dict2obj(self, dict_obj):
         if not isinstance(dict_obj, dict):
@@ -45,15 +56,22 @@ def main(path=""):
     """返回战斗简报"""
     if path:
         rp = BattleReport(json.loads(open(path, "r", encoding='utf-8').read(), strict=False))
-        print("进攻方是否获胜: ", rp.win)
+        print("是否获胜: ", rp.win)
         print("总回合数: ", len(rp.rounds))
-        for v in rp.attackers_final:
+        if rp.win:
+            print("进攻方剩余:")
+        else:
+            print("防守方剩余:")
+        for v in rp.heroes_final:
             print(v)
         print()
     else:
         while True:
             __path = input("输入战报路径:\n")
-            main(__path)
+            if __path:
+                main(__path)
+            else:
+                main("battle_output.json")
 
 
 if __name__ == '__main__':
