@@ -1,4 +1,6 @@
+# -*- coding: UTF-8 -*-
 import json
+import io
 
 
 class Dict(dict):

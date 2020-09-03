@@ -1,83 +1,93 @@
+import os
 import xlwings as xw
 import pywintypes
-import argparse
 import requests
-import nltk
+from bs4 import BeautifulSoup
+import time
+import report_parse
 
 __requires__ = 'excel_rw==0.9.0'
-__version__ = '0.9.0-2020-8-9'
+__version__ = '0.9.1-2020-9-3'
+__run_time = 0
+BATTLE_REPORTS_PATH = 'E:/Projects/BattleReports/'
+BATTLE_URL = 'http://192.168.0.230:12123/battle'
+BOOK_NAME = 'excel_battlefield.xlsx'
+SHEET_INFO = 'Info'
+SHEET_CONTENTS = 'Contents'
+battleInput = ''
 
 
-class Battlefield(xw.Sheet):
-    """展示战斗演绎的工作表"""
-    pass
+
+def push_battle(shts, run_time=1):
+    if not shts:
+        shts = start_info()
+    url = BATTLE_URL
+    sht = shts[SHEET_INFO]
+    data = {'memberinfos': battleInput}
+    n = 0
+    while n < run_time:
+        n += 1
+        sht.cells(10, 1).value = '提交中({0}/{1})'.format(n, run_time)
+        r = requests.post(url, data)
+        soup = BeautifulSoup(r.text, 'html.parser')
+        json_data = delete_battle_report_head(soup.get_text(), battleInput)
+        sht.cells(10+n, 1).value = save_as_json(json_data)
+        time.sleep(1)
+    sht.cells(10, 1).value = '已提交'
 
 
-class XlUnit:
-    """量表中的对象"""
-
-    def __init__(self, uid):
-        self.__uid = uid
-
-
-class UserCommandParser:
-    """用户指令"""
-
-    def __init__(self):
-        """https://docs.python.org/zh-cn/3/library/argparse.html#prog"""
-        self.parser = argparse.ArgumentParser(description='可以在此操作excel或寻求帮助')
-        subparsers = self.parser.add_subparsers()
-        subparsers.required = True
-
-        parser_a = subparsers.add_parser('push battle', help='add help')
-        parser_a.set_defaults(func=push_battle)
+def delete_battle_report_head(text, *args):
+    head_string = {'\n', '战斗测试', '上传新表', '显示公式'}
+    for s in args:
+        head_string.add(s)
+    for hs in head_string:
+        text = text.replace(hs, '', 1)
+    return text.replace(u'\xa0', '').replace(u'&nbsp', '')
 
 
-def push_battle(sht):
-    if not sht:
-        sht = start_info()
-    url = 'http://192.168.0.230:12123/battle'
-    data = {'memberinfos': sht.range('A10').value}
-    r = requests.post(url, data)
-    sht.range('A11').value = "已提交"
-    sht.range('A12').value = nltk.clean_html(r.text)
-
-
-def operate(value):
-    print(value)
-
-
-def read_command_loop():
-    parser = UserCommandParser().parser
-    while True:
-        command = input()
-        args = parser.parse_args(command.split())
-        args.func(args)
+def save_as_json(text, file_name='', path=''):
+    if path == '':
+        path = time.strftime('%Y%m%d') + '/'
+    path = BATTLE_REPORTS_PATH + path
+    if file_name == '':
+        file_name = time.strftime('%Y%m%d%H%M%S') + '.json'
+    if not os.path.exists(path):
+        os.makedirs(path)
+    with open(path+file_name, 'a+', encoding='utf-8') as f:
+        f.write(text)
+        f.close()
+    return file_name
 
 
 def start_info():
+    wb = xw.Book(BOOK_NAME)
     try:
-        wb = xw.books.active
-    except AttributeError:
-        wb = xw.Book()
-    # wb = xw.Book('Stake4Esports.xlsx')
-    try:
-        sht = wb.sheets['Info']
+        wb.sheets[SHEET_INFO]
     except pywintypes.com_error:
-        sht = wb.sheets.add("Info")
+        wb.sheets.add(SHEET_INFO)
     finally:
-        print("excel_battlefield run success")
-    sht.range('A1').value = [['模块名称', "excel_rw"], ['当前版本', __version__], ['简介', main.__doc__]]
-    sht.range('A9').value = "在A10输入阵容后push battle"
+        shts = wb.sheets
+        print('excel_battlefield run success')
+    shts[SHEET_INFO].range('A:E').clear()
+    shts[SHEET_INFO].range((1, 1)).value = [['模块名称', 'excel_rw'], ['当前版本', __version__], ['简介', main.__doc__]]
     print('模块名称:{0}\n当前版本:{1}'.format('excel_rw', __version__))
-    return sht
+    fresh_contents(shts)
+    return shts
+
+
+def fresh_contents(shts):
+    # 根据Sheets'Contents'创建索引
+    s_key = shts[SHEET_CONTENTS].range('B:B')
+    s_value = shts[SHEET_CONTENTS].range('C:C')
+    s_dict = dict(zip(s_key.value, s_value.value))
+    global battleInput
+    battleInput = s_dict["battleInput"]
 
 
 def main():
     """这个模块通过xlwings直接和EXCEL交互"""
     sht = start_info()
     push_battle(sht)
-    #read_command_loop()
 
 
 if __name__ == '__main__':
