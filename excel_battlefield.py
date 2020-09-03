@@ -103,9 +103,6 @@ def main():
         push_battle(shts, uc[1])
     if uc[0] == 1:
         push_battle(shts, uc[1], uc[2])
-    # 2 模拟战斗 参数1:战报
-    if uc[0] == 2:
-        pass
 
 
 if __name__ == '__main__':
