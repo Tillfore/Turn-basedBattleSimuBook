@@ -44,12 +44,12 @@ class BattleReport:
             return dict_obj
         d = Dict()
         for k, v in dict_obj.items():
-            if type(v) == list:
-                new_v = []
-                for i in v:
-                    i = self.dict2obj(i)
-                    new_v.append(i)
-                v = new_v
+            # if type(v) == list:
+            #     new_v = []
+            #     for i in v:
+            #         i = self.dict2obj(i)
+            #         new_v.append(i)
+            #      v = new_v
             d[k] = self.dict2obj(v)
         return d
 
