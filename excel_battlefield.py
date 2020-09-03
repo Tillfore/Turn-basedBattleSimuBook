@@ -2,6 +2,7 @@ import xlwings as xw
 import pywintypes
 import argparse
 import requests
+import nltk
 
 __requires__ = 'excel_rw==0.9.0'
 __version__ = '0.9.0-2020-8-9'
@@ -39,7 +40,7 @@ def push_battle(sht):
     data = {'memberinfos': sht.range('A10').value}
     r = requests.post(url, data)
     sht.range('A11').value = "已提交"
-    sht.range('A12').value = r.text
+    sht.range('A12').value = nltk.clean_html(r.text)
 
 
 def operate(value):
