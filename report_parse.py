@@ -10,6 +10,25 @@ class Dict(dict):
     __getattr__ = dict.__getitem__
 
 
+def hero_pos_id_trans(pos_id, to6=False, to101=False, to1=False):
+    """转换英雄pos_id,默认将敌人id转为6~10"""
+    if to6:
+        if pos_id > 100:
+            pos_id = pos_id - 100 + 5
+    elif to101:
+        if pos_id > 5:
+            pos_id = pos_id - 5 + 100
+    elif to1:
+        if pos_id > 100:
+            pos_id = pos_id - 100
+        elif pos_id > 5:
+            pos_id = pos_id - 5
+    else:
+        if pos_id > 100:
+            pos_id = pos_id - 100 + 5
+    return pos_id
+
+
 class BattleReport:
     """战报解析"""
 
