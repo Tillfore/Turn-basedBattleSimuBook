@@ -19,27 +19,28 @@ SHEET_CONTENTS = 'Contents'
 battleInput = ''
 
 
-def push_battle(shts, run_time=1, simple_parse=0):
+def push_battle(shts, run_time=1, simple_parse=0, show_debug=0):
     if not shts:
         shts = start_work()
     url = BATTLE_URL
     sht = shts[SHEET_INFO]
-    data = {'memberinfos': battleInput}
+    # 请求转为multipart/form-data格式
+    data = {'memberinfos': battleInput, 'showDebug': show_debug}
     run_time = min(run_time, 100)
     n = 0
     n_sp = 1
     while n < run_time:
         n += 1
         sht.cells(10, 1).value = '提交中({0}/{1})'.format(n, run_time)
-        r = requests.post(url, data)
+        r = requests.post(url, data=data)
         soup = BeautifulSoup(r.text, 'html.parser')
         json_data = delete_battle_report_head(soup.get_text(), battleInput)
         sht.cells(10 + n, 1).value = save_as_json(json_data)
         if simple_parse:
-            while sht.cells(n_sp+10, 6).value:
+            while sht.cells(n_sp + 10, 6).value:
                 n_sp += 1
             rp = report_parse.BattleReport(json.loads(json_data, strict=False))
-            shts[SHEET_INFO].range((n_sp+10, 6)).value = \
+            shts[SHEET_INFO].range((n_sp + 10, 6)).value = \
                 [n_sp, rp.win, len(rp.rounds), len(rp.heroes_final), sht.cells(10 + n, 1).value]
         time.sleep(1)
     sht.cells(10, 1).value = '已提交'
@@ -98,11 +99,9 @@ def main():
     shts = start_work()
     user_command = shts[SHEET_TEST].range('A1:F1')
     uc = user_command.value
-    # 0 跑战报 参数1:次数
+    # 0 跑战报 参数1:次数 参数2:需要简析 参数3:战报显示公式
     if uc[0] == 0:
-        push_battle(shts, uc[1])
-    if uc[0] == 1:
-        push_battle(shts, uc[1], uc[2])
+        push_battle(shts, run_time=uc[1], simple_parse=uc[2], show_debug=int(uc[3]))
 
 
 if __name__ == '__main__':
