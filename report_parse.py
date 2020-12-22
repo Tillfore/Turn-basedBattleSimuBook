@@ -10,22 +10,53 @@ class Dict(dict):
     __getattr__ = dict.__getitem__
 
 
-def hero_pos_id_trans(pos_id, to6=False, to101=False, to1=False):
-    """转换英雄pos_id,默认将敌人id转为6~10"""
-    if to6:
-        if pos_id > 100:
-            pos_id = pos_id - 100 + 5
-    elif to101:
-        if pos_id > 5:
-            pos_id = pos_id - 5 + 100
-    elif to1:
-        if pos_id > 100:
-            pos_id = pos_id - 100
-        elif pos_id > 5:
-            pos_id = pos_id - 5
-    else:
-        if pos_id > 100:
-            pos_id = pos_id - 100 + 5
+def hero_pos_id_trans(pos_id, from16=False, from1101=False, from19=False, to16=False, to1101=False, to19=False):
+    """转换英雄pos_id,
+    from/to16:我方英雄1~5,神器101~103;敌方英雄6~10,神器104~106
+    from/to1101:我方英雄1~5,神器6~8;敌方英雄101~105,神器106~108
+    from/to19:我方英雄1~5,神器6~8;敌方英雄9~13,神器14~16
+    """
+    if to16:
+        if from1101:
+            if pos_id >= 106:
+                pos_id = pos_id - 2
+            elif pos_id >= 101:
+                pos_id = pos_id - 95
+            elif pos_id >= 6:
+                pos_id = pos_id + 95
+        if from19:
+            if pos_id >= 14:
+                pos_id = pos_id + 90
+            elif pos_id >= 9:
+                pos_id = pos_id - 3
+            elif pos_id >= 6:
+                pos_id = pos_id + 95
+    elif to1101:
+        if from16:
+            if pos_id >= 106:
+                pos_id = pos_id + 2
+            elif pos_id >= 101:
+                pos_id = pos_id - 95
+            elif pos_id >= 6:
+                pos_id = pos_id + 95
+        if from19:
+            if pos_id >= 14:
+                pos_id = pos_id + 92
+            elif pos_id >= 9:
+                pos_id = pos_id + 92
+    elif to19:
+        if from16:
+            if pos_id >= 104:
+                pos_id = pos_id - 90
+            elif pos_id >= 101:
+                pos_id = pos_id - 95
+            elif pos_id >= 6:
+                pos_id = pos_id + 3
+        if from1101:
+            if pos_id >= 106:
+                pos_id = pos_id - 92
+            elif pos_id >= 101:
+                pos_id = pos_id - 92
     return pos_id
 
 

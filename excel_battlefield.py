@@ -52,10 +52,11 @@ def take_simple_parse(sht, level, json_data, br_row):
             [n_sp, rp.win, len(rp.rounds), len(rp.heroes_final), sht.cells(br_row, 1).value]
     if level >= 2:
         for hero_stas in rp.stas:
-            col = report_parse.hero_pos_id_trans(hero_stas['mid'])
-            sht.range((n_sp + 10, 12+col)).value = hero_stas.get('hurt')
-            sht.range((n_sp + 10, 22 + col)).value = hero_stas.get('be_hurt')
-            sht.range((n_sp + 10, 32 + col)).value = hero_stas.get('cure')
+            col = report_parse.hero_pos_id_trans(hero_stas['mid'], from1101=True, to19=True)
+            sht.range((n_sp + 10, 28 + col)).value = hero_stas.get('be_hurt') or 0
+            sht.range((n_sp + 10, 46 + col)).value = hero_stas.get('hurt') or 0
+            sht.range((n_sp + 10, 62 + col)).value = hero_stas.get('cure') or 0
+            sht.range((n_sp + 10, 12 + col)).value = sht.range((n_sp + 10, 46+col)).value+sht.range((n_sp + 10, 62 + col)).value
 
 
 def delete_battle_report_head(text, *args):
