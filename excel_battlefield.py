@@ -65,8 +65,7 @@ def take_simple_parse(sht, level, json_data, br_row, n_sp, n):
             sht.range((n_sp + 10, 28 + col)).value = hero_stas.get('be_hurt') or 0
             sht.range((n_sp + 10, 44 + col)).value = hero_stas.get('hurt') or 0
             sht.range((n_sp + 10, 60 + col)).value = hero_stas.get('cure') or 0
-            sht.range((n_sp + 10, 12 + col)).value = sht.range((n_sp + 10, 44 + col)).value + sht.range(
-                (n_sp + 10, 60 + col)).value
+            sht.range((n_sp + 10, 12 + col)).value = sht.range((n_sp + 10, 44 + col)).value + sht.range((n_sp + 10, 60 + col)).value
 
 
 def delete_battle_report_head(text, *args):
