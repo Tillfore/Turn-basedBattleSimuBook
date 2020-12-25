@@ -11,7 +11,7 @@ __requires__ = 'excel_rw==0.9.1'
 __version__ = '0.9.1-2020-10-21'
 __run_time = 0
 BATTLE_REPORTS_PATH = 'E:/Projects/BattleReports/'
-BATTLE_URL = 'http://192.168.0.230:12123/battle'
+BATTLE_URL = 'http://192.168.0.230:12124/battle'
 BOOK_NAME = 'excel_battlefield.xlsx'
 SHEET_TEST = 'Test'
 SHEET_INFO = 'Info'
@@ -27,7 +27,12 @@ def push_battle(shts, run_time=1, simple_parse=0, show_debug=0):
     # 请求转为multipart/form-data格式
     data = {'memberinfos': battleInput, 'showDebug': show_debug}
     run_time = min(run_time, 100)
+    n_sp = 1
     n = 0
+    while sht.cells(n_sp + 10, 6).value:
+        n_sp += 1
+    take_parse_title(sht, n_sp)
+    n_sp += 1
     while n < run_time:
         n += 1
         br_row = 10 + n
@@ -37,26 +42,31 @@ def push_battle(shts, run_time=1, simple_parse=0, show_debug=0):
         json_data = delete_battle_report_head(soup.get_text(), battleInput)
         sht.cells(br_row, 1).value = save_as_json(json_data)
         if simple_parse:
-            take_simple_parse(sht, simple_parse, json_data, br_row)
-        time.sleep(1)
+            take_simple_parse(sht, simple_parse, json_data, br_row, n_sp, n)
+            n_sp += 1
+        # time.sleep(1)
     sht.cells(10, 1).value = '已提交'
 
 
-def take_simple_parse(sht, level, json_data, br_row):
-    n_sp = 1
-    while sht.cells(n_sp + 10, 6).value:
-        n_sp += 1
+def take_parse_title(sht, n_sp):
+    sht.range((n_sp + 10, 6)).value = time.strftime('%d%H%M')
+    sht.range((n_sp + 10, 13)).value = sht.range("A6:E6").value
+    sht.range((n_sp + 10, 21)).value = sht.range("A8:E8").value
+
+
+def take_simple_parse(sht, level, json_data, br_row, n_sp, n):
     rp = report_parse.BattleReport(json.loads(json_data, strict=False))
     if level >= 1:
         sht.range((n_sp + 10, 6)).value = \
-            [n_sp, rp.win, len(rp.rounds), len(rp.heroes_final), sht.cells(br_row, 1).value]
+            [n, rp.win, len(rp.rounds), len(rp.heroes_final), sht.cells(br_row, 1).value]
     if level >= 2:
         for hero_stas in rp.stas:
             col = report_parse.hero_pos_id_trans(hero_stas['mid'], from1101=True, to19=True)
             sht.range((n_sp + 10, 28 + col)).value = hero_stas.get('be_hurt') or 0
-            sht.range((n_sp + 10, 46 + col)).value = hero_stas.get('hurt') or 0
-            sht.range((n_sp + 10, 62 + col)).value = hero_stas.get('cure') or 0
-            sht.range((n_sp + 10, 12 + col)).value = sht.range((n_sp + 10, 46+col)).value+sht.range((n_sp + 10, 62 + col)).value
+            sht.range((n_sp + 10, 44 + col)).value = hero_stas.get('hurt') or 0
+            sht.range((n_sp + 10, 60 + col)).value = hero_stas.get('cure') or 0
+            sht.range((n_sp + 10, 12 + col)).value = sht.range((n_sp + 10, 44 + col)).value + sht.range(
+                (n_sp + 10, 60 + col)).value
 
 
 def delete_battle_report_head(text, *args):
