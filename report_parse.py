@@ -79,15 +79,24 @@ class BattleReport:
         elif type(battle_report_dict) == str:
             self.__dict__ = self.dict2obj(json.loads(battle_report_dict, strict=False))
         try:
-            self.heroes_final = self.attackers_final
-            self.win = True
+            self.win = self.win
         except AttributeError:
-            pass
-        try:
-            self.heroes_final = self.defensers_final
             self.win = False
-        except AttributeError:
             pass
+        if self.win:
+            self.heroes_final = self.attackers_final
+        else:
+            self.heroes_final = self.defensers_final
+        # try:
+        #     self.heroes_final = self.attackers_final
+        #     self.win = True
+        # except AttributeError:
+        #     pass
+        # try:
+        #     self.heroes_final = self.defensers_final
+        #     self.win = False
+        # except AttributeError:
+        #     pass
 
     def dict2obj(self, dict_obj):
         if not isinstance(dict_obj, dict):

@@ -11,7 +11,7 @@ __requires__ = 'excel_rw==0.9.1'
 __version__ = '0.9.1-2020-10-21'
 __run_time = 0
 BATTLE_REPORTS_PATH = 'E:/Projects/BattleReports/'
-BATTLE_URL = 'http://192.168.0.230:12124/battle'
+BATTLE_URL = 'http://192.168.0.230:6060/battle'
 BOOK_NAME = 'excel_battlefield.xlsx'
 SHEET_TEST = 'Test'
 SHEET_INFO = 'Info'
@@ -19,13 +19,13 @@ SHEET_CONTENTS = 'Contents'
 battleInput = ''
 
 
-def push_battle(shts, run_time=1, simple_parse=0, show_debug=0):
+def push_battle(shts, run_time=1, simple_parse=0, show_debug=0, max_round=0, monster_group=0):
     if not shts:
         shts = start_work()
     url = BATTLE_URL
     sht = shts[SHEET_INFO]
     # 请求转为multipart/form-data格式
-    data = {'memberinfos': battleInput, 'showDebug': show_debug}
+    data = {'memberinfos': battleInput, 'showDebug': show_debug, 'maxRound': max_round, 'monsterGroup':monster_group}
     run_time = min(run_time, 100)
     n_sp = 1
     n = 0
@@ -69,7 +69,7 @@ def take_simple_parse(sht, level, json_data, br_row, n_sp, n):
 
 
 def delete_battle_report_head(text, *args):
-    head_string = {'\n', '战斗测试', '上传新表', '显示公式'}
+    head_string = {'\n', '战斗测试', '上传新表', '显示公式','防守方替换为MonsterGroup：', '最大回合，默认为0，如果设置了大于0就代表执行到指定回合数才结束战斗'}
     for s in args:
         head_string.add(s)
     for hs in head_string:
@@ -121,9 +121,10 @@ def main():
     shts = start_work()
     user_command = shts[SHEET_TEST].range('A1:F1')
     uc = user_command.value
-    # 0 跑战报 参数1:次数 参数2:需要简析 参数3:战报显示公式 参数4:伤害/承伤统计
+    # 0 跑战报 参数1:次数 参数2:需要简析 参数3:战报显示公式 参数4:伤害/承伤统计 参数5:怪物组ID
     if uc[0] == 1:
-        push_battle(shts, run_time=uc[1], simple_parse=uc[2], show_debug=int(uc[3]))
+        #跑战报  怪物组ID为0时进行标准PVP对战,怪物组ID为有效monster_group_id,则进行PVE对战
+        push_battle(shts, run_time=uc[1], simple_parse=uc[2], show_debug=int(uc[3]), monster_group=int(uc[5]))
 
 
 if __name__ == '__main__':
