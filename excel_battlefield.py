@@ -25,7 +25,7 @@ def push_battle(shts, run_time=1, simple_parse=0, show_debug=0, max_round=0, mon
     url = BATTLE_URL
     sht = shts[SHEET_INFO]
     # 请求转为multipart/form-data格式
-    data = {'memberinfos': battleInput, 'showDebug': show_debug, 'maxRound': max_round, 'monsterGroup':monster_group}
+    data = {'memberinfos': battleInput, 'showDebug': show_debug, 'maxRound': max_round, 'monsterGroup': monster_group}
     run_time = min(run_time, 100)
     n_sp = 1
     n = 0
@@ -37,6 +37,8 @@ def push_battle(shts, run_time=1, simple_parse=0, show_debug=0, max_round=0, mon
         n += 1
         br_row = 10 + n
         sht.cells(10, 1).value = '提交中({0}/{1})'.format(n, run_time)
+        data = {'memberinfos': battleInput, 'showDebug': show_debug, 'maxRound': max_round,
+                'monsterGroup': monster_group}
         r = requests.post(url, data=data)
         soup = BeautifulSoup(r.text, 'html.parser')
         json_data = delete_battle_report_head(soup.get_text(), battleInput)
@@ -44,7 +46,56 @@ def push_battle(shts, run_time=1, simple_parse=0, show_debug=0, max_round=0, mon
         if simple_parse:
             take_simple_parse(sht, simple_parse, json_data, br_row, n_sp, n)
             n_sp += 1
-        # time.sleep(1)
+    # time.sleep(1)
+    sht.cells(10, 1).value = '已提交'
+
+
+def rush_battle(shts, run_time=1, simple_parse=0, show_debug=0, max_round=0, start_row=10, try_sl=0):
+    if not shts:
+        shts = start_work()
+    url = BATTLE_URL
+    sht = shts[SHEET_INFO]
+    # 请求转为multipart/form-data格式
+    run_time = min(run_time, 100)
+    n_sp = 1
+    n = 0
+    while sht.cells(n_sp + 10, 6).value:
+        n_sp += 1
+    take_parse_title(sht, n_sp)
+    n_sp += 1
+    monster_groups = shts[SHEET_TEST].range('BL'+str(start_row)+':BL9999').value
+    groups_count = len(monster_groups)
+    while n < groups_count:
+        sht.cells(10, 1).value = '提交中({0}/{1})'.format(n, groups_count)
+        if not monster_groups[n]:
+            sht.cells(10, 1).value = '已提交'
+            return
+        mg = int(monster_groups[n])
+        print(mg)
+        if 40000 < mg < 43000:
+            max_round = 4
+        else:
+            max_round = 0
+        data = {'memberinfos': battleInput, 'showDebug': show_debug, 'maxRound': max_round,
+                'monsterGroup': mg}
+        n = n+1
+        i = 0
+        sl_time = 0
+        while i < run_time:
+            br_row = 11 + i
+            r = requests.post(url, data=data)
+            soup = BeautifulSoup(r.text, 'html.parser')
+            json_data = delete_battle_report_head(soup.get_text(), battleInput)
+            sht.cells(br_row, 1).value = save_as_json(json_data, custom=str(mg))
+            if simple_parse:
+                take_simple_parse(sht, simple_parse, json_data, br_row, n_sp, mg)
+                n_sp += 1
+            i += 1
+            if try_sl >= sl_time:
+                if sht.range((n_sp + 10, 7)).value == 'False':
+                    sl_time += 1
+                    i = 0
+            # time.sleep(1)
     sht.cells(10, 1).value = '已提交'
 
 
@@ -62,14 +113,14 @@ def take_simple_parse(sht, level, json_data, br_row, n_sp, n):
     if level >= 2:
         for hero_stas in rp.stas:
             col = report_parse.hero_pos_id_trans(hero_stas['mid'], from1101=True, to19=True)
-            sht.range((n_sp + 10, 28 + col)).value = hero_stas.get('be_hurt') or 0
+            sht.range((n_sp + 10, 28 + col)).value = hero_stas.get('beHurt') or 0
             sht.range((n_sp + 10, 44 + col)).value = hero_stas.get('hurt') or 0
             sht.range((n_sp + 10, 60 + col)).value = hero_stas.get('cure') or 0
             sht.range((n_sp + 10, 12 + col)).value = sht.range((n_sp + 10, 44 + col)).value + sht.range((n_sp + 10, 60 + col)).value
 
 
 def delete_battle_report_head(text, *args):
-    head_string = {'\n', '战斗测试', '上传新表', '显示公式','防守方替换为MonsterGroup：', '最大回合，默认为0，如果设置了大于0就代表执行到指定回合数才结束战斗'}
+    head_string = {'\n', '战斗测试', '上传新表', '显示公式', '显示空值', '测试机器人', '防守方替换为MonsterGroup：', '最大回合，默认为0，如果设置了大于0就代表执行到指定回合数才结束战斗'}
     for s in args:
         head_string.add(s)
     for hs in head_string:
@@ -77,12 +128,12 @@ def delete_battle_report_head(text, *args):
     return text.replace(u'\xa0', '').replace(u'&nbsp', '')
 
 
-def save_as_json(text, file_name='', path=''):
+def save_as_json(text, file_name='', path='', custom=''):
     if path == '':
         path = time.strftime('%Y%m%d') + '/'
     path = BATTLE_REPORTS_PATH + path
     if file_name == '':
-        file_name = time.strftime('%Y%m%d%H%M%S') + '.json'
+        file_name = time.strftime('%H%M%S') + '_' + custom + '.json'
     if not os.path.exists(path):
         os.makedirs(path)
     with open(path + file_name, 'a+', encoding='utf-8') as f:
@@ -121,10 +172,15 @@ def main():
     shts = start_work()
     user_command = shts[SHEET_TEST].range('A1:F1')
     uc = user_command.value
-    # 0 跑战报 参数1:次数 参数2:需要简析 参数3:战报显示公式 参数4:伤害/承伤统计 参数5:怪物组ID
+    # 0 跑战报 参数1:次数 参数2:需要简析 参数3:战报显示公式 参数4:预留 参数5:怪物组ID
     if uc[0] == 1:
-        #跑战报  怪物组ID为0时进行标准PVP对战,怪物组ID为有效monster_group_id,则进行PVE对战
+        # 跑战报  怪物组ID为0时进行标准PVP对战,怪物组ID为有效monster_group_id,则进行PVE对战
         push_battle(shts, run_time=uc[1], simple_parse=uc[2], show_debug=int(uc[3]), monster_group=int(uc[5]))
+
+    # 0 跑战报 参数1:次数 参数2:需要简析 参数3:战报显示公式 参数4:快跑起始行
+    elif uc[0] == 3:
+        # 速刷战报  怪物组ID为0时进行标准PVP对战,怪物组ID为有效monster_group_id,则进行PVE对战
+        rush_battle(shts, run_time=uc[1], simple_parse=uc[2], show_debug=int(uc[3]), start_row=int(uc[4]), try_sl=int(uc[5]))
 
 
 if __name__ == '__main__':
