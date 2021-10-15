@@ -8,10 +8,10 @@ import report_parse
 import json
 
 __requires__ = 'excel_rw==0.9.1'
-__version__ = '0.9.1-2020-10-21'
+__version__ = '0.9.1-2021-9-30'
 __run_time = 0
 BATTLE_REPORTS_PATH = 'E:/Projects/BattleReports/'
-BATTLE_URL = 'http://192.168.0.230:6060/battle'
+BATTLE_URL = 'http://192.168.0.230:12123/battle'
 BOOK_NAME = 'excel_battlefield.xlsx'
 SHEET_TEST = 'Test'
 SHEET_INFO = 'Info'
@@ -72,8 +72,12 @@ def rush_battle(shts, run_time=1, simple_parse=0, show_debug=0, max_round=0, sta
             return
         mg = int(monster_groups[n])
         print(mg)
+        # 材料本特殊处理
         if 40000 < mg < 43000:
             max_round = 4
+        # 公会副本特殊处理
+        elif 70000 < mg < 8000:
+            max_round = 8
         else:
             max_round = 0
         data = {'memberinfos': battleInput, 'showDebug': show_debug, 'maxRound': max_round,
@@ -113,7 +117,7 @@ def take_simple_parse(sht, level, json_data, br_row, n_sp, n):
     if level >= 2:
         for hero_stas in rp.stas:
             col = report_parse.hero_pos_id_trans(hero_stas['mid'], from1101=True, to19=True)
-            sht.range((n_sp + 10, 28 + col)).value = hero_stas.get('beHurt') or 0
+            sht.range((n_sp + 10, 28 + col)).value = hero_stas.get('be_hurt') or 0
             sht.range((n_sp + 10, 44 + col)).value = hero_stas.get('hurt') or 0
             sht.range((n_sp + 10, 60 + col)).value = hero_stas.get('cure') or 0
             sht.range((n_sp + 10, 12 + col)).value = sht.range((n_sp + 10, 44 + col)).value + sht.range((n_sp + 10, 60 + col)).value

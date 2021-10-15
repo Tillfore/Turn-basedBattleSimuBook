@@ -70,8 +70,8 @@ class BattleReport:
         self.rounds = """战斗回合 obj"""
         self.stas = """战斗统计 obj"""
         self.win = """胜负情况 bool"""
-        self.attackersFinal = """战斗结果 list"""
-        self.defensersFinal = """战斗结果 list"""
+        self.attackers_final = """战斗结果 list"""
+        self.defensers_final = """战斗结果 list"""
         self.skills = """用过的技能 list"""
         self.buffs = """用过的BUFF list"""
         if type(battle_report_dict) == dict:
@@ -84,9 +84,9 @@ class BattleReport:
             self.win = False
             pass
         if self.win:
-            self.heroes_final = self.attackersFinal
+            self.heroes_final = self.attackers_final
         else:
-            self.heroes_final = self.defensersFinal
+            self.heroes_final = self.defensers_final
         # try:
         #     self.heroes_final = self.attackers_final
         #     self.win = True
