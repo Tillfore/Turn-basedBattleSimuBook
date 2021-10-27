@@ -74,7 +74,7 @@ def rush_battle(shts, run_time=1, simple_parse=0, show_debug=0, max_round=0, sta
         print(mg)
         # 材料本特殊处理
         if 40000 < mg < 43000:
-            max_round = 4
+            max_round = 8
         # 公会副本特殊处理
         elif 70000 < mg < 8000:
             max_round = 8
