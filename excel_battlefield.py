@@ -11,7 +11,7 @@ __requires__ = 'excel_rw==0.9.1'
 __version__ = '0.9.1-2021-9-30'
 __run_time = 0
 BATTLE_REPORTS_PATH = 'E:/Projects/BattleReports/'
-BATTLE_URL = 'http://192.168.0.230:12123/battle'
+BATTLE_URL = 'http://192.168.0.230:15150/battle'
 BOOK_NAME = 'excel_battlefield.xlsx'
 SHEET_TEST = 'Test'
 SHEET_INFO = 'Info'
