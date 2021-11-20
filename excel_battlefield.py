@@ -11,7 +11,7 @@ __requires__ = 'excel_rw==0.9.1'
 __version__ = '0.9.1-2021-9-30'
 __run_time = 0
 BATTLE_REPORTS_PATH = 'E:/Projects/BattleReports/'
-BATTLE_URL = 'http://192.168.0.230:15150/battle'
+BATTLE_URL = 'http://192.168.0.89:12123/battle'
 BOOK_NAME = 'excel_battlefield.xlsx'
 SHEET_TEST = 'Test'
 SHEET_INFO = 'Info'
@@ -124,7 +124,7 @@ def take_simple_parse(sht, level, json_data, br_row, n_sp, n):
 
 
 def delete_battle_report_head(text, *args):
-    head_string = {'\n', '战斗测试', '上传新表', '显示公式', '显示空值', '测试机器人', '防守方替换为MonsterGroup：', '最大回合，默认为0，如果设置了大于0就代表执行到指定回合数才结束战斗'}
+    head_string = {'\n', '战斗测试', '上传新表', '显示公式', '显示被动技能', '显示属性', '显示空值', '测试机器人', '防守方替换为MonsterGroup：', '最大回合，默认为0，如果设置了大于0就代表执行到指定回合数才结束战斗'}
     for s in args:
         head_string.add(s)
     for hs in head_string:
