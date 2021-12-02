@@ -6,17 +6,68 @@ from bs4 import BeautifulSoup
 import time
 import report_parse
 import json
+import configparser
 
-__requires__ = 'excel_rw==0.9.1'
-__version__ = '0.9.1-2021-9-30'
+__requires__ = 'excel_rw==0.9.3.1'
+__version__ = '0.9.3.1-2021-12-2'
 __run_time = 0
-BATTLE_REPORTS_PATH = 'E:/Projects/BattleReports/'
-BATTLE_URL = 'http://192.168.0.89:12123/battle'
-BOOK_NAME = 'excel_battlefield.xlsx'
-SHEET_TEST = 'Test'
-SHEET_INFO = 'Info'
-SHEET_CONTENTS = 'Contents'
 battleInput = ''
+
+
+def take_config(config_key, default, value_type=''):
+    config = configparser.ConfigParser()
+    config.read('cfg.ini', encoding='UTF-8')
+    if config_key == 'TOOL_DEBUG':
+        try:
+            print('TOOL_DEBUG = ', config.getboolean('Config', config_key))
+            return config.getboolean('Config', config_key)
+        except configparser.NoOptionError:
+            return False
+        except configparser.NoSectionError:
+            return False
+    try:
+        if value_type == 'int':
+            if TOOL_DEBUG:
+                print(config_key, ' = ', config.getint('Config', config_key))
+            return config.getint('Config', config_key)
+        elif value_type == 'boolean':
+            if TOOL_DEBUG:
+                print(config_key, ' = ', config.getboolean('Config', config_key))
+            return config.getboolean('Config', config_key)
+        elif value_type == 'list':
+            if TOOL_DEBUG:
+                print(config_key, ' = ', list(config['Config'][config_key].split(',')))
+            return list(config['Config'][config_key].split(','))
+        else:
+            if TOOL_DEBUG:
+                print(config_key, ' = ', config.get('Config', config_key))
+            return config.get('Config', config_key)
+    except configparser.NoOptionError:
+        if TOOL_DEBUG:
+            print(config_key, ' 读取默认配置')
+        return default
+    except configparser.NoSectionError:
+        return default
+    except KeyError:
+        if TOOL_DEBUG:
+            print(config_key, ' 读取默认配置')
+        return default
+
+
+TOOL_DEBUG = take_config('TOOL_DEBUG', False, 'boolean')
+BATTLE_REPORTS_PATH = take_config('BATTLE_REPORTS_PATH', 'E:/Projects/BattleReports/')
+BATTLE_URL = take_config('BATTLE_URL', 'http://192.168.0.89:12123/battle')
+BOOK_NAME = take_config('BOOK_NAME', 'excel_battlefield.xlsx')
+SHEET_TEST = take_config('SHEET_TEST', 'Test')
+SHEET_INFO = take_config('SHEET_INFO', 'Info')
+SHEET_CONTENTS = take_config('SHEET_CONTENTS', 'Contents')
+TRIAL_LEVEL_START = take_config('TRIAL_LEVEL_START', 7000, 'int')
+TRIAL_LEVEL_END = take_config('TRIAL_LEVEL_END', 8000, 'int')
+TRIAL_ROUND_LIMIT = take_config('TRIAL_ROUND_LIMIT', 8, 'int')
+GUILD_LEVEL_START = take_config('GUILD_LEVEL_START', 7000, 'int')
+GUILD_LEVEL_END = take_config('GUILD_LEVEL_END', 8000, 'int')
+GUILD_ROUND_LIMIT = take_config('GUILD_ROUND_LIMIT', 8, 'int')
+HEAD_STRING = take_config('HEAD_STRING', [], 'list')
 
 
 def push_battle(shts, run_time=1, simple_parse=0, show_debug=0, max_round=0, monster_group=0):
@@ -29,20 +80,21 @@ def push_battle(shts, run_time=1, simple_parse=0, show_debug=0, max_round=0, mon
     run_time = min(run_time, 100)
     n_sp = 1
     n = 0
+    print('开始自动战斗中……')
     while sht.cells(n_sp + 10, 6).value:
         n_sp += 1
     take_parse_title(sht, n_sp)
     n_sp += 1
+    sht.cells(10, 1).value = '提交中'
     while n < run_time:
         n += 1
         br_row = 10 + n
-        sht.cells(10, 1).value = '提交中({0}/{1})'.format(n, run_time)
         data = {'memberinfos': battleInput, 'showDebug': show_debug, 'maxRound': max_round,
                 'monsterGroup': monster_group}
         r = requests.post(url, data=data)
         soup = BeautifulSoup(r.text, 'html.parser')
-        json_data = delete_battle_report_head(soup.get_text(), battleInput)
-        sht.cells(br_row, 1).value = save_as_json(json_data)
+        json_data = delete_battle_report_head(soup.get_text(), battleInput, *HEAD_STRING)
+        # sht.cells(br_row, 1).value = save_as_json(json_data)
         if simple_parse:
             take_simple_parse(sht, simple_parse, json_data, br_row, n_sp, n)
             n_sp += 1
@@ -59,38 +111,40 @@ def rush_battle(shts, run_time=1, simple_parse=0, show_debug=0, max_round=0, sta
     run_time = min(run_time, 100)
     n_sp = 1
     n = 0
+    print('开始自动战斗中……')
     while sht.cells(n_sp + 10, 6).value:
         n_sp += 1
     take_parse_title(sht, n_sp)
     n_sp += 1
-    monster_groups = shts[SHEET_TEST].range('BL'+str(start_row)+':BL9999').value
+    monster_groups = shts[SHEET_TEST].range('BL' + str(start_row) + ':BL9999').value
     groups_count = len(monster_groups)
+    sht.cells(10, 1).value = '提交中'
     while n < groups_count:
-        sht.cells(10, 1).value = '提交中({0}/{1})'.format(n, groups_count)
         if not monster_groups[n]:
             sht.cells(10, 1).value = '已提交'
             return
         mg = int(monster_groups[n])
-        print(mg)
+        if TOOL_DEBUG:
+            print(mg)
         # 材料本特殊处理
-        if 40000 < mg < 43000:
+        if TRIAL_LEVEL_START <= mg <= TRIAL_LEVEL_END:
             max_round = 8
         # 公会副本特殊处理
-        elif 70000 < mg < 8000:
+        elif GUILD_LEVEL_START <= mg <= GUILD_LEVEL_END:
             max_round = 8
         else:
             max_round = 0
         data = {'memberinfos': battleInput, 'showDebug': show_debug, 'maxRound': max_round,
                 'monsterGroup': mg}
-        n = n+1
+        n = n + 1
         i = 0
         sl_time = 0
         while i < run_time:
             br_row = 11 + i
             r = requests.post(url, data=data)
             soup = BeautifulSoup(r.text, 'html.parser')
-            json_data = delete_battle_report_head(soup.get_text(), battleInput)
-            sht.cells(br_row, 1).value = save_as_json(json_data, custom=str(mg))
+            json_data = delete_battle_report_head(soup.get_text(), battleInput, *HEAD_STRING)
+            # sht.cells(br_row, 1).value = save_as_json(json_data, custom=str(mg))
             if simple_parse:
                 take_simple_parse(sht, simple_parse, json_data, br_row, n_sp, mg)
                 n_sp += 1
@@ -120,13 +174,15 @@ def take_simple_parse(sht, level, json_data, br_row, n_sp, n):
             sht.range((n_sp + 10, 28 + col)).value = hero_stas.get('be_hurt') or 0
             sht.range((n_sp + 10, 44 + col)).value = hero_stas.get('hurt') or 0
             sht.range((n_sp + 10, 60 + col)).value = hero_stas.get('cure') or 0
-            sht.range((n_sp + 10, 12 + col)).value = sht.range((n_sp + 10, 44 + col)).value + sht.range((n_sp + 10, 60 + col)).value
+            sht.range((n_sp + 10, 12 + col)).value = sht.range((n_sp + 10, 44 + col)).value + sht.range(
+                (n_sp + 10, 60 + col)).value
 
 
 def delete_battle_report_head(text, *args):
-    head_string = {'\n', '战斗测试', '上传新表', '显示公式', '显示被动技能', '显示属性', '显示空值', '测试机器人', '防守方替换为MonsterGroup：', '最大回合，默认为0，如果设置了大于0就代表执行到指定回合数才结束战斗'}
+    head_string = ['\n', '战斗测试', '上传新表', '显示公式', '显示被动技能', '显示属性', '显示空值', '测试机器人',
+                   '防守方替换为MonsterGroup：', '最大回合，默认为0，如果设置了大于0就代表执行到指定回合数才结束战斗']
     for s in args:
-        head_string.add(s)
+        head_string.append(s)
     for hs in head_string:
         text = text.replace(hs, '', 1)
     return text.replace(u'\xa0', '').replace(u'&nbsp', '')
@@ -157,7 +213,8 @@ def start_work():
         print('excel_battlefield run success')
     # shts[SHEET_INFO].range('A:E').clear()
     shts[SHEET_INFO].range((1, 1)).value = [['模块名称', 'excel_battlefield'], ['当前版本', __version__]]
-    print('模块名称:{0}\n当前版本:{1}'.format('excel_rw', __version__))
+    if TOOL_DEBUG:
+        print('模块名称:{0}\n当前版本:{1}'.format('excel_rw', __version__))
     fresh_contents(shts)
     return shts
 
@@ -174,17 +231,31 @@ def fresh_contents(shts):
 def main():
     """这个模块通过xlwings直接和EXCEL交互"""
     shts = start_work()
-    user_command = shts[SHEET_TEST].range('A1:F1')
-    uc = user_command.value
-    # 0 跑战报 参数1:次数 参数2:需要简析 参数3:战报显示公式 参数4:预留 参数5:怪物组ID
-    if uc[0] == 1:
-        # 跑战报  怪物组ID为0时进行标准PVP对战,怪物组ID为有效monster_group_id,则进行PVE对战
-        push_battle(shts, run_time=uc[1], simple_parse=uc[2], show_debug=int(uc[3]), monster_group=int(uc[5]))
+    while True:
+        tool_command = input('回车开始战斗')
+        if tool_command == 'refresh':
+            shts = start_work()
+        elif tool_command == 'close':
+            break
+        elif tool_command == 'clear':
+            if os.name == 'posix':
+                os.system('clear')
+            else:
+                os.system('cls')
+        else:
+            user_command = shts[SHEET_TEST].range('A1:F1')
+            uc = user_command.value
+            # 0 跑战报 参数1:次数 参数2:需要简析 参数3:战报显示公式 参数4:预留 参数5:怪物组ID
+            if uc[0] == 1:
+                # 跑战报  怪物组ID为0时进行标准PVP对战,怪物组ID为有效monster_group_id,则进行PVE对战
+                push_battle(shts, run_time=uc[1], simple_parse=uc[2], show_debug=int(uc[3]), monster_group=int(uc[5]))
 
-    # 0 跑战报 参数1:次数 参数2:需要简析 参数3:战报显示公式 参数4:快跑起始行
-    elif uc[0] == 3:
-        # 速刷战报  怪物组ID为0时进行标准PVP对战,怪物组ID为有效monster_group_id,则进行PVE对战
-        rush_battle(shts, run_time=uc[1], simple_parse=uc[2], show_debug=int(uc[3]), start_row=int(uc[4]), try_sl=int(uc[5]))
+            # 0 跑战报 参数1:次数 参数2:需要简析 参数3:战报显示公式 参数4:快跑起始行
+            elif uc[0] == 3:
+                # 速刷战报  怪物组ID为0时进行标准PVP对战,怪物组ID为有效monster_group_id,则进行PVE对战
+                rush_battle(shts, run_time=uc[1], simple_parse=uc[2], show_debug=int(uc[3]), start_row=int(uc[4]),
+                            try_sl=int(uc[5]))
+            print('完成\n========================')
 
 
 if __name__ == '__main__':
