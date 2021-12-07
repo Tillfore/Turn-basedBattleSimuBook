@@ -94,7 +94,7 @@ def push_battle(shts, run_time=1, simple_parse=0, show_debug=0, max_round=0, mon
         r = requests.post(url, data=data)
         soup = BeautifulSoup(r.text, 'html.parser')
         json_data = delete_battle_report_head(soup.get_text(), battleInput, *HEAD_STRING)
-        # sht.cells(br_row, 1).value = save_as_json(json_data)
+        sht.cells(br_row, 1).value = save_as_json(json_data)
         if simple_parse:
             take_simple_parse(sht, simple_parse, json_data, br_row, n_sp, n)
             n_sp += 1
@@ -144,7 +144,7 @@ def rush_battle(shts, run_time=1, simple_parse=0, show_debug=0, max_round=0, sta
             r = requests.post(url, data=data)
             soup = BeautifulSoup(r.text, 'html.parser')
             json_data = delete_battle_report_head(soup.get_text(), battleInput, *HEAD_STRING)
-            # sht.cells(br_row, 1).value = save_as_json(json_data, custom=str(mg))
+            sht.cells(br_row, 1).value = save_as_json(json_data, custom=str(mg))
             if simple_parse:
                 take_simple_parse(sht, simple_parse, json_data, br_row, n_sp, mg)
                 n_sp += 1
