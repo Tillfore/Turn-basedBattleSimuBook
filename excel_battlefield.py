@@ -12,6 +12,8 @@ __requires__ = 'excel_rw==0.9.3.1'
 __version__ = '0.9.3.1-2021-12-2'
 __run_time = 0
 battleInput = ''
+battleInputAttacker = ''
+battleInputDefenser = ''
 
 
 def take_config(config_key, default, value_type=''):
@@ -102,7 +104,7 @@ def push_battle(shts, run_time=1, simple_parse=0, show_debug=0, max_round=0, mon
     sht.cells(10, 1).value = '已提交'
 
 
-def rush_battle(shts, run_time=1, simple_parse=0, show_debug=0, max_round=0, start_row=10, try_sl=0):
+def rush_pve_battle(shts, run_time=1, simple_parse=0, show_debug=0, max_round=0, start_row=10, try_sl=0):
     if not shts:
         shts = start_work()
     url = BATTLE_URL
@@ -111,7 +113,7 @@ def rush_battle(shts, run_time=1, simple_parse=0, show_debug=0, max_round=0, sta
     run_time = min(run_time, 100)
     n_sp = 1
     n = 0
-    print('开始自动战斗中……')
+    print('开始批量PVE战斗中……')
     while sht.cells(n_sp + 10, 6).value:
         n_sp += 1
     take_parse_title(sht, n_sp)
@@ -153,6 +155,52 @@ def rush_battle(shts, run_time=1, simple_parse=0, show_debug=0, max_round=0, sta
                 if sht.range((n_sp + 10, 7)).value == 'False':
                     sl_time += 1
                     i = 0
+            # time.sleep(1)
+    sht.cells(10, 1).value = '已提交'
+
+
+def rush_pvp_battle(shts, run_time=1, simple_parse=0, show_debug=0, defenser_start_row=10):
+    if not shts:
+        shts = start_work()
+    url = BATTLE_URL
+    sht = shts[SHEET_INFO]
+    # 请求转为multipart/form-data格式
+    run_time = min(run_time, 1000)
+    n_sp = 1
+    n = 0
+    print('开始批量PVP战斗中……')
+    while sht.cells(n_sp + 10, 6).value:
+        n_sp += 1
+    sht.range((n_sp + 10, 6)).value = time.strftime('%d%H%M')
+    defenser_title = shts[SHEET_TEST].range('BP' + str(defenser_start_row) + ':BP9999').value
+    defenser_input = shts[SHEET_TEST].range('BQ' + str(defenser_start_row) + ':BQ9999').value
+    groups_count = len(defenser_input)
+    sht.cells(10, 1).value = '提交中'
+    while n < groups_count:
+        if not defenser_input[n]:
+            sht.cells(10, 1).value = '已提交'
+            return
+        di = defenser_input[n]
+        sht.range((n_sp + 10, 13)).value = sht.range("A6:E6").value
+        sht.range((n_sp + 10, 21)).value = defenser_title[n]
+        n_sp += 1
+        if TOOL_DEBUG:
+            print(n)
+        battle_input_pvp = '[' + battleInputAttacker + ',' + di + ']'
+        data = {'memberinfos': battle_input_pvp, 'showDebug': show_debug}
+        n = n + 1
+        i = 0
+        sl_time = 0
+        while i < run_time:
+            br_row = 11 + i
+            r = requests.post(url, data=data)
+            soup = BeautifulSoup(r.text, 'html.parser')
+            json_data = delete_battle_report_head(soup.get_text(), battle_input_pvp, *HEAD_STRING)
+            sht.cells(br_row, 1).value = save_as_json(json_data, custom=str(n))
+            if simple_parse:
+                take_simple_parse(sht, simple_parse, json_data, br_row, n_sp, n)
+                n_sp += 1
+            i += 1
             # time.sleep(1)
     sht.cells(10, 1).value = '已提交'
 
@@ -221,11 +269,15 @@ def start_work():
 
 def fresh_contents(shts):
     # 根据Sheets-Contents创建索引
-    s_key = shts[SHEET_CONTENTS].range('B1:B3')
-    s_value = shts[SHEET_CONTENTS].range('C1:C3')
+    s_key = shts[SHEET_CONTENTS].range('B1:B28')
+    s_value = shts[SHEET_CONTENTS].range('C1:C28')
     s_dict = dict(zip(s_key.value, s_value.value))
     global battleInput
     battleInput = s_dict["battleInput"]
+    global battleInputAttacker
+    battleInputAttacker = s_dict["battleInput_attacker"]
+    global battleInputDefenser
+    battleInputDefenser = s_dict["battleInput_defenser"]
 
 
 def main():
@@ -252,9 +304,15 @@ def main():
 
             # 0 跑战报 参数1:次数 参数2:需要简析 参数3:战报显示公式 参数4:快跑起始行
             elif uc[0] == 3:
-                # 速刷战报  怪物组ID为0时进行标准PVP对战,怪物组ID为有效monster_group_id,则进行PVE对战
-                rush_battle(shts, run_time=uc[1], simple_parse=uc[2], show_debug=int(uc[3]), start_row=int(uc[4]),
-                            try_sl=int(uc[5]))
+                # 速刷PVE  怪物组ID为0时进行标准PVP对战,怪物组ID为有效monster_group_id,则进行PVE对战
+                rush_pve_battle(shts, run_time=uc[1], simple_parse=uc[2], show_debug=int(uc[3]), start_row=int(uc[4]),
+                                try_sl=int(uc[5]))
+
+            # 0 跑战报 参数1:次数 参数2:需要简析 参数3:战报显示公式 参数4:攻击方数据行号 参数5:防守方数据起始行号
+            elif uc[0] == 4:
+                # 速刷PVP
+                rush_pvp_battle(shts, run_time=uc[1], simple_parse=uc[2], show_debug=int(uc[3]),
+                                defenser_start_row=int(uc[4]))
             print('完成\n========================')
 
 
