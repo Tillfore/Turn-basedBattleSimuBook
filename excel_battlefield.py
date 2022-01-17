@@ -58,7 +58,7 @@ def take_config(config_key, default, value_type=''):
 
 TOOL_DEBUG = take_config('TOOL_DEBUG', False, 'boolean')
 BATTLE_REPORTS_PATH = take_config('BATTLE_REPORTS_PATH', 'E:/Projects/BattleReports/')
-BATTLE_URL = take_config('BATTLE_URL', 'http://192.168.0.89:12123/battle')
+BATTLE_URL = take_config('BATTLE_URL', 'http://192.168.0.89:12124/battle')
 BOOK_NAME = take_config('BOOK_NAME', 'excel_battlefield.xlsx')
 SHEET_TEST = take_config('SHEET_TEST', 'Test')
 SHEET_INFO = take_config('SHEET_INFO', 'Info')
@@ -72,13 +72,14 @@ GUILD_ROUND_LIMIT = take_config('GUILD_ROUND_LIMIT', 8, 'int')
 HEAD_STRING = take_config('HEAD_STRING', [], 'list')
 
 
-def push_battle(shts, run_time=1, simple_parse=0, show_debug=0, max_round=0, monster_group=0):
+def push_battle(shts, run_time=1, simple_parse=0, show_debug=0, max_round=0, monster_group=0, max_times=1):
     if not shts:
         shts = start_work()
     url = BATTLE_URL
     sht = shts[SHEET_INFO]
     # 请求转为multipart/form-data格式
-    data = {'memberinfos': battleInput, 'showDebug': show_debug, 'maxRound': max_round, 'monsterGroup': monster_group}
+    data = {'memberinfos': battleInput, 'showDebug': show_debug, 'maxRound': max_round, 'monsterGroup': monster_group,
+            'maxTimes': max_times}
     run_time = min(run_time, 100)
     n_sp = 1
     n = 0
@@ -92,7 +93,7 @@ def push_battle(shts, run_time=1, simple_parse=0, show_debug=0, max_round=0, mon
         n += 1
         br_row = 10 + n
         data = {'memberinfos': battleInput, 'showDebug': show_debug, 'maxRound': max_round,
-                'monsterGroup': monster_group}
+                'monsterGroup': monster_group, 'maxTimes': max_times}
         r = requests.post(url, data=data)
         soup = BeautifulSoup(r.text, 'html.parser')
         json_data = delete_battle_report_head(soup.get_text(), battleInput, *HEAD_STRING)
@@ -104,7 +105,7 @@ def push_battle(shts, run_time=1, simple_parse=0, show_debug=0, max_round=0, mon
     sht.cells(10, 1).value = '已提交'
 
 
-def rush_pve_battle(shts, run_time=1, simple_parse=0, show_debug=0, max_round=0, start_row=10, try_sl=0):
+def rush_pve_battle(shts, run_time=1, simple_parse=0, show_debug=0, max_round=0, start_row=10, try_sl=0, max_times=1):
     if not shts:
         shts = start_work()
     url = BATTLE_URL
@@ -137,7 +138,7 @@ def rush_pve_battle(shts, run_time=1, simple_parse=0, show_debug=0, max_round=0,
         else:
             max_round = 0
         data = {'memberinfos': battleInput, 'showDebug': show_debug, 'maxRound': max_round,
-                'monsterGroup': mg}
+                'monsterGroup': mg, 'maxTimes': max_times}
         n = n + 1
         i = 0
         sl_time = 0
@@ -227,8 +228,9 @@ def take_simple_parse(sht, level, json_data, br_row, n_sp, n):
 
 
 def delete_battle_report_head(text, *args):
-    head_string = ['\n', '战斗测试', '上传新表', '显示公式', '显示被动技能', '显示属性', '显示空值', '测试机器人',
-                   '防守方替换为MonsterGroup：', '最大回合，默认为0，如果设置了大于0就代表执行到指定回合数才结束战斗']
+    head_string = ['\n', '战斗测试', '上传新表', '显示公式', '显示被动技能', '显示属性', '显示空值', '严格检查对象池',
+                   '防守方替换为MonsterGroup:', '最大回合(默认为0，如果设置了大于0就代表执行到指定回合数才结束战斗):',
+                   '最大运行次数(用于检测战斗错误,直到跑出错误才停止):']
     for s in args:
         head_string.append(s)
     for hs in head_string:
