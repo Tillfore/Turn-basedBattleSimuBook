@@ -59,6 +59,7 @@ def take_config(config_key, default, value_type=''):
 TOOL_DEBUG = take_config('TOOL_DEBUG', False, 'boolean')
 BATTLE_REPORTS_PATH = take_config('BATTLE_REPORTS_PATH', 'E:/Projects/BattleReports/')
 BATTLE_URL = take_config('BATTLE_URL', 'http://192.168.0.89:12124/battle')
+BATTLE_PARSE_LEN = take_config('BATTLE_PARSE_LEN', 65, 'int')
 BOOK_NAME = take_config('BOOK_NAME', 'excel_battlefield.xlsx')
 SHEET_TEST = take_config('SHEET_TEST', 'Test')
 SHEET_INFO = take_config('SHEET_INFO', 'Info')
@@ -221,15 +222,16 @@ def take_simple_parse(sht, level, json_data, br_row, n_sp, n):
         sht.range((n_sp + 10, 6)).value = \
             [n, rp.win, len(rp.rounds), len(rp.heroes_final), sht.cells(br_row, 1).value]
     if level >= 2:
+        temp_value = [""]*BATTLE_PARSE_LEN
         for hero_stas in rp.stas:
             col = report_parse.hero_pos_id_trans(hero_stas['mid'], from1101=True, to19=True)
             if (col == 6) or (col == 14):
                 col += hero_stas['artifact_pos'] - 1
-            sht.range((n_sp + 10, 28 + col)).value = hero_stas.get('be_hurt') or 0
-            sht.range((n_sp + 10, 44 + col)).value = hero_stas.get('hurt') or 0
-            sht.range((n_sp + 10, 60 + col)).value = hero_stas.get('cure') or 0
-            sht.range((n_sp + 10, 12 + col)).value = sht.range((n_sp + 10, 44 + col)).value + sht.range(
-                (n_sp + 10, 60 + col)).value
+            temp_value[16 + col] = hero_stas.get('be_hurt') or 0
+            temp_value[32 + col] = hero_stas.get('hurt') or 0
+            temp_value[48 + col] = hero_stas.get('cure') or 0
+            temp_value[col] = temp_value[32 + col] + temp_value[48 + col]
+        sht.range((n_sp + 10, 12)).value = temp_value
 
 
 def delete_battle_report_head(text, *args):
