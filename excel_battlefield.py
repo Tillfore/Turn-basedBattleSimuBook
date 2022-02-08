@@ -75,6 +75,7 @@ HEAD_STRING = take_config('HEAD_STRING', [], 'list')
 def push_battle(shts, run_time=1, simple_parse=0, show_debug=0, max_round=0, monster_group=0, max_times=1):
     if not shts:
         shts = start_work()
+    fresh_contents(shts)
     url = BATTLE_URL
     sht = shts[SHEET_INFO]
     # 请求转为multipart/form-data格式
@@ -108,6 +109,7 @@ def push_battle(shts, run_time=1, simple_parse=0, show_debug=0, max_round=0, mon
 def rush_pve_battle(shts, run_time=1, simple_parse=0, show_debug=0, max_round=0, start_row=10, try_sl=0, max_times=1):
     if not shts:
         shts = start_work()
+    fresh_contents(shts)
     url = BATTLE_URL
     sht = shts[SHEET_INFO]
     # 请求转为multipart/form-data格式
@@ -163,6 +165,7 @@ def rush_pve_battle(shts, run_time=1, simple_parse=0, show_debug=0, max_round=0,
 def rush_pvp_battle(shts, run_time=1, simple_parse=0, show_debug=0, defenser_start_row=10):
     if not shts:
         shts = start_work()
+    fresh_contents(shts)
     url = BATTLE_URL
     sht = shts[SHEET_INFO]
     # 请求转为multipart/form-data格式
