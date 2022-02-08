@@ -223,6 +223,8 @@ def take_simple_parse(sht, level, json_data, br_row, n_sp, n):
     if level >= 2:
         for hero_stas in rp.stas:
             col = report_parse.hero_pos_id_trans(hero_stas['mid'], from1101=True, to19=True)
+            if (col == 6) or (col == 14):
+                col += hero_stas['artifact_pos'] - 1
             sht.range((n_sp + 10, 28 + col)).value = hero_stas.get('be_hurt') or 0
             sht.range((n_sp + 10, 44 + col)).value = hero_stas.get('hurt') or 0
             sht.range((n_sp + 10, 60 + col)).value = hero_stas.get('cure') or 0
