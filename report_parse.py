@@ -85,9 +85,15 @@ class BattleReport:
             self.win = 0
             pass
         if self.win:
-            self.heroes_final = self.attackers_final
+            try:
+                self.heroes_final = self.attackers_final
+            except AttributeError:
+                self.heroes_final = []
         else:
-            self.heroes_final = self.defensers_final
+            try:
+                self.heroes_final = self.defensers_final
+            except AttributeError:
+                self.heroes_final = []
         # try:
         #     self.heroes_final = self.attackers_final
         #     self.win = True

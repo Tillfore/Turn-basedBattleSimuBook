@@ -58,12 +58,13 @@ def take_config(config_key, default, value_type=''):
 
 TOOL_DEBUG = take_config('TOOL_DEBUG', False, 'boolean')
 BATTLE_REPORTS_PATH = take_config('BATTLE_REPORTS_PATH', 'E:/Projects/BattleReports/')
-BATTLE_URL = take_config('BATTLE_URL', 'http://192.168.0.89:12124/battle')
+BATTLE_URL = take_config('BATTLE_URL', 'http://192.168.0.89:12125/battle')
 BATTLE_PARSE_LEN = take_config('BATTLE_PARSE_LEN', 65, 'int')
 BOOK_NAME = take_config('BOOK_NAME', 'excel_battlefield.xlsx')
 SHEET_TEST = take_config('SHEET_TEST', 'Test')
 SHEET_INFO = take_config('SHEET_INFO', 'Info')
 SHEET_CONTENTS = take_config('SHEET_CONTENTS', 'Contents')
+SHEET_TEAM_CREATOR = take_config('SHEET_CONTENTS', 'TeamCreator')
 TRIAL_LEVEL_START = take_config('TRIAL_LEVEL_START', 7000, 'int')
 TRIAL_LEVEL_END = take_config('TRIAL_LEVEL_END', 8000, 'int')
 TRIAL_ROUND_LIMIT = take_config('TRIAL_ROUND_LIMIT', 8, 'int')
@@ -83,7 +84,7 @@ def push_battle(shts, run_time=1, simple_parse=0, show_debug=0, max_round=0, mon
     data = {'memberinfos': battleInput, 'showDebug': show_debug, 'maxRound': max_round, 'monsterGroup': monster_group,
             'maxTimes': max_times}
     run_time = min(run_time, 100)
-    n_sp = 1
+    n_sp = sht.cells(9, 7).value
     n = 0
     print('开始自动战斗中……')
     while sht.cells(n_sp + 10, 6).value:
@@ -115,7 +116,7 @@ def rush_pve_battle(shts, run_time=1, simple_parse=0, show_debug=0, max_round=0,
     sht = shts[SHEET_INFO]
     # 请求转为multipart/form-data格式
     run_time = min(run_time, 100)
-    n_sp = 1
+    n_sp = sht.cells(9, 7).value
     n = 0
     print('开始批量PVE战斗中……')
     while sht.cells(n_sp + 10, 6).value:
@@ -163,7 +164,7 @@ def rush_pve_battle(shts, run_time=1, simple_parse=0, show_debug=0, max_round=0,
     sht.cells(10, 1).value = '已提交'
 
 
-def rush_pvp_battle(shts, run_time=1, simple_parse=0, show_debug=0, defenser_start_row=10):
+def rush_pvp_battle(shts, run_time=1, simple_parse=0, show_debug=0, start_row=10, max_times=1):
     if not shts:
         shts = start_work()
     fresh_contents(shts)
@@ -171,42 +172,55 @@ def rush_pvp_battle(shts, run_time=1, simple_parse=0, show_debug=0, defenser_sta
     sht = shts[SHEET_INFO]
     # 请求转为multipart/form-data格式
     run_time = min(run_time, 1000)
-    n_sp = 1
-    n = 0
+    n_sp = sht.cells(9, 7).value
+    m = 0
     print('开始批量PVP战斗中……')
-    while sht.cells(n_sp + 10, 6).value:
-        n_sp += 1
-    sht.range((n_sp + 10, 6)).value = time.strftime('%d%H%M')
-    defenser_title = shts[SHEET_TEST].range('BP' + str(defenser_start_row) + ':BP9999').value
-    defenser_input = shts[SHEET_TEST].range('BQ' + str(defenser_start_row) + ':BQ9999').value
-    groups_count = len(defenser_input)
-    sht.cells(10, 1).value = '提交中'
-    while n < groups_count:
-        if not defenser_input[n]:
+    attacker_title = shts[SHEET_TEST].range('BP' + str(start_row) + ':BP9999').value
+    attacker_input = shts[SHEET_TEST].range('BQ' + str(start_row) + ':BQ9999').value
+    attacker_groups_count = len(attacker_input)
+    while m < attacker_groups_count:
+        if not attacker_input[m]:
             sht.cells(10, 1).value = '已提交'
             return
-        di = defenser_input[n]
-        sht.range((n_sp + 10, 13)).value = sht.range("A6:E6").value
-        sht.range((n_sp + 10, 21)).value = defenser_title[n]
-        n_sp += 1
-        if TOOL_DEBUG:
-            print(n)
-        battle_input_pvp = '[' + battleInputAttacker + ',' + di + ']'
-        data = {'memberinfos': battle_input_pvp, 'showDebug': show_debug}
-        n = n + 1
-        i = 0
-        sl_time = 0
-        while i < run_time:
-            br_row = 11 + i
-            r = requests.post(url, data=data)
-            soup = BeautifulSoup(r.text, 'html.parser')
-            json_data = delete_battle_report_head(soup.get_text(), battle_input_pvp, *HEAD_STRING)
-            sht.cells(br_row, 1).value = save_as_json(json_data, custom=str(n))
-            if simple_parse:
-                take_simple_parse(sht, simple_parse, json_data, br_row, n_sp, n)
-                n_sp += 1
-            i += 1
-            # time.sleep(1)
+        ai = attacker_input[m]
+        n = 0
+        while sht.cells(n_sp + 10, 6).value:
+            n_sp += 1
+        sht.range((n_sp + 10, 6)).value = time.strftime('%d%H%M')
+        defenser_title = shts[SHEET_TEST].range('BR' + str(start_row) + ':BR9999').value
+        defenser_input = shts[SHEET_TEST].range('BS' + str(start_row) + ':BS9999').value
+        defenser_groups_count = len(defenser_input)
+        sht.cells(10, 1).value = '提交中'
+        while n < defenser_groups_count:
+            if not defenser_input[n]:
+                break
+            di = defenser_input[n]
+            if simple_parse < 2:
+                sht.range((n_sp + 10, 7)).value = attacker_title[m]
+                sht.range((n_sp + 10, 8)).value = defenser_title[n]
+            else:
+                sht.range((n_sp + 10, 13)).value = attacker_title[m]
+                sht.range((n_sp + 10, 21)).value = defenser_title[n]
+            n_sp += 1
+            if TOOL_DEBUG:
+                print(n)
+            battle_input_pvp = '[' + ai + ',' + di + ']'
+            data = {'memberinfos': battle_input_pvp, 'showDebug': show_debug, 'maxTimes': max_times}
+            n = n + 1
+            i = 0
+            sl_time = 0
+            while i < run_time:
+                br_row = 11 + i
+                r = requests.post(url, data=data)
+                soup = BeautifulSoup(r.text, 'html.parser')
+                json_data = delete_battle_report_head(soup.get_text(), battle_input_pvp, *HEAD_STRING)
+                sht.cells(br_row, 1).value = save_as_json(json_data, custom=str(n))
+                if simple_parse:
+                    take_simple_parse(sht, simple_parse, json_data, br_row, n_sp, n)
+                    n_sp += 1
+                i += 1
+                # time.sleep(1)
+        m += 1
     sht.cells(10, 1).value = '已提交'
 
 
@@ -236,8 +250,8 @@ def take_simple_parse(sht, level, json_data, br_row, n_sp, n):
 
 def delete_battle_report_head(text, *args):
     head_string = ['\n', '战斗测试', '上传新表', '显示公式', '显示被动技能', '显示属性', '显示空值', '严格检查对象池',
-                   '防守方替换为MonsterGroup:', '最大回合(默认为0，如果设置了大于0就代表执行到指定回合数才结束战斗):',
-                   '最大运行次数(用于检测战斗错误,直到跑出错误才停止):']
+                   '防守方替换为MonsterGroup:', '最大回合(默认为0,如果设置了大于0就代表执行到指定回合数才结束战斗):',
+                   '最大运行次数(用于检测战斗错误,直到跑出错误才停止):', '运行次数:', 'FunctionID :', '是否打印目标信息']
     for s in args:
         head_string.append(s)
     for hs in head_string:
@@ -317,11 +331,17 @@ def main():
                 rush_pve_battle(shts, run_time=uc[1], simple_parse=uc[2], show_debug=int(uc[3]), start_row=int(uc[4]),
                                 try_sl=int(uc[5]))
 
-            # 0 跑战报 参数1:次数 参数2:需要简析 参数3:战报显示公式 参数4:攻击方数据行号 参数5:防守方数据起始行号
+            # 0 跑战报 参数1:次数 参数2:需要简析 参数3:战报显示公式 参数4:数据起始行号
             elif uc[0] == 4:
                 # 速刷PVP
                 rush_pvp_battle(shts, run_time=uc[1], simple_parse=uc[2], show_debug=int(uc[3]),
-                                defenser_start_row=int(uc[4]))
+                                start_row=int(uc[4]))
+            # 阵容自动创建
+            elif uc[0] == 9:
+                # 阵容自动创建
+                import random_team_creator
+                random_team_creator.team_creator(shts, SHEET_TEAM_CREATOR)
+
             print('完成\n========================')
 
 
