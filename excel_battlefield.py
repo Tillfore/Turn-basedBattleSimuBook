@@ -58,7 +58,7 @@ def take_config(config_key, default, value_type=''):
 
 TOOL_DEBUG = take_config('TOOL_DEBUG', False, 'boolean')
 BATTLE_REPORTS_PATH = take_config('BATTLE_REPORTS_PATH', 'E:/Projects/BattleReports/')
-BATTLE_URL = take_config('BATTLE_URL', 'http://192.168.0.89:12125/battle')
+BATTLE_URL = take_config('BATTLE_URL', 'http://192.168.0.89:12126/battle')
 BATTLE_PARSE_LEN = take_config('BATTLE_PARSE_LEN', 65, 'int')
 BOOK_NAME = take_config('BOOK_NAME', 'excel_battlefield.xlsx')
 SHEET_TEST = take_config('SHEET_TEST', 'Test')
@@ -80,11 +80,12 @@ def push_battle(shts, run_time=1, simple_parse=0, show_debug=0, max_round=0, mon
     fresh_contents(shts)
     url = BATTLE_URL
     sht = shts[SHEET_INFO]
-    # 请求转为multipart/form-data格式
-    data = {'memberinfos': battleInput, 'showDebug': show_debug, 'maxRound': max_round, 'monsterGroup': monster_group,
-            'maxTimes': max_times}
     run_time = min(run_time, 100)
-    n_sp = sht.cells(9, 7).value
+    try:
+        # 可能手动配置快跑起始行
+        n_sp = sht.cells(9, 7).value + 0
+    except TypeError:
+        n_sp = 0
     n = 0
     print('开始自动战斗中……')
     while sht.cells(n_sp + 10, 6).value:
@@ -95,7 +96,8 @@ def push_battle(shts, run_time=1, simple_parse=0, show_debug=0, max_round=0, mon
     while n < run_time:
         n += 1
         br_row = 10 + n
-        data = {'memberinfos': battleInput, 'showDebug': show_debug, 'maxRound': max_round,
+        # 请求转为multipart/form-data格式
+        data = {'memberinfos': battleInput, 'showDebugFormula': show_debug, 'maxRound': max_round,
                 'monsterGroup': monster_group, 'maxTimes': max_times}
         r = requests.post(url, data=data)
         soup = BeautifulSoup(r.text, 'html.parser')
@@ -116,7 +118,10 @@ def rush_pve_battle(shts, run_time=1, simple_parse=0, show_debug=0, max_round=0,
     sht = shts[SHEET_INFO]
     # 请求转为multipart/form-data格式
     run_time = min(run_time, 100)
-    n_sp = sht.cells(9, 7).value
+    try:
+        n_sp = sht.cells(9, 7).value + 0
+    except TypeError:
+        n_sp = 0
     n = 0
     print('开始批量PVE战斗中……')
     while sht.cells(n_sp + 10, 6).value:
@@ -141,7 +146,7 @@ def rush_pve_battle(shts, run_time=1, simple_parse=0, show_debug=0, max_round=0,
             max_round = 8
         else:
             max_round = 0
-        data = {'memberinfos': battleInput, 'showDebug': show_debug, 'maxRound': max_round,
+        data = {'memberinfos': battleInput, 'showDebugFormula': show_debug, 'maxRound': max_round,
                 'monsterGroup': mg, 'maxTimes': max_times}
         n = n + 1
         i = 0
@@ -172,7 +177,10 @@ def rush_pvp_battle(shts, run_time=1, simple_parse=0, show_debug=0, start_row=10
     sht = shts[SHEET_INFO]
     # 请求转为multipart/form-data格式
     run_time = min(run_time, 1000)
-    n_sp = sht.cells(9, 7).value
+    try:
+        n_sp = sht.cells(9, 7).value + 0
+    except TypeError:
+        n_sp = 0
     m = 0
     print('开始批量PVP战斗中……')
     attacker_title = shts[SHEET_TEST].range('BP' + str(start_row) + ':BP9999').value
@@ -205,7 +213,7 @@ def rush_pvp_battle(shts, run_time=1, simple_parse=0, show_debug=0, start_row=10
             if TOOL_DEBUG:
                 print(n)
             battle_input_pvp = '[' + ai + ',' + di + ']'
-            data = {'memberinfos': battle_input_pvp, 'showDebug': show_debug, 'maxTimes': max_times}
+            data = {'memberinfos': battle_input_pvp, 'showDebugFormula': show_debug, 'maxTimes': max_times}
             n = n + 1
             i = 0
             sl_time = 0
@@ -323,18 +331,18 @@ def main():
             # 0 跑战报 参数1:次数 参数2:需要简析 参数3:战报显示公式 参数4:预留 参数5:怪物组ID
             if uc[0] == 1:
                 # 跑战报  怪物组ID为0时进行标准PVP对战,怪物组ID为有效monster_group_id,则进行PVE对战
-                push_battle(shts, run_time=uc[1], simple_parse=uc[2], show_debug=int(uc[3]), monster_group=int(uc[5]))
+                push_battle(shts, run_time=int(uc[1]), simple_parse=uc[2], show_debug=int(uc[3]), monster_group=int(uc[5]))
 
             # 0 跑战报 参数1:次数 参数2:需要简析 参数3:战报显示公式 参数4:快跑起始行
             elif uc[0] == 3:
                 # 速刷PVE  怪物组ID为0时进行标准PVP对战,怪物组ID为有效monster_group_id,则进行PVE对战
-                rush_pve_battle(shts, run_time=uc[1], simple_parse=uc[2], show_debug=int(uc[3]), start_row=int(uc[4]),
+                rush_pve_battle(shts, max_times=int(uc[1]), simple_parse=uc[2], show_debug=int(uc[3]), start_row=int(uc[4]),
                                 try_sl=int(uc[5]))
 
             # 0 跑战报 参数1:次数 参数2:需要简析 参数3:战报显示公式 参数4:数据起始行号
             elif uc[0] == 4:
                 # 速刷PVP
-                rush_pvp_battle(shts, run_time=uc[1], simple_parse=uc[2], show_debug=int(uc[3]),
+                rush_pvp_battle(shts, max_times=int(uc[1]), simple_parse=uc[2], show_debug=int(uc[3]),
                                 start_row=int(uc[4]))
             # 阵容自动创建
             elif uc[0] == 9:
