@@ -8,9 +8,8 @@ import report_parse
 import json
 import configparser
 
-__requires__ = 'excel_rw==0.9.3.1'
-__version__ = '0.9.3.1-2021-12-2'
-__run_time = 0
+__requires__ = 'excel_rw==0.9.4.0'
+__version__ = '0.9.4.0-2022-5-17'
 battleInput = ''
 battleInputAttacker = ''
 battleInputDefenser = ''
@@ -74,7 +73,26 @@ GUILD_ROUND_LIMIT = take_config('GUILD_ROUND_LIMIT', 8, 'int')
 HEAD_STRING = take_config('HEAD_STRING', [], 'list')
 
 
-def push_battle(shts, run_time=1, simple_parse=0, show_debug=0, max_round=0, monster_group=0, max_times=1):
+class RequestData:
+    def __init__(self):
+        self.show_debug_formula = 0
+        self.max_round = 0
+        self.monster_group = 0
+        self.max_times = 1
+
+    def get_report(self, battle_input=''):
+        if battle_input == '':
+            battle_input = battleInput
+        url = BATTLE_URL
+        # 请求转为multipart/form-data格式
+        data = {'memberinfos': battle_input, 'showDebugFormula': self.show_debug_formula, 'maxRound': self.max_round,
+                'monsterGroup': self.monster_group, 'maxTimes': self.max_times}
+        r = requests.post(url, data=data)
+        soup = BeautifulSoup(r.text, 'html.parser')
+        return soup
+
+
+def push_battle(shts, request_data, run_time=1, simple_parse=0):
     if not shts:
         shts = start_work()
     fresh_contents(shts)
@@ -96,12 +114,8 @@ def push_battle(shts, run_time=1, simple_parse=0, show_debug=0, max_round=0, mon
     while n < run_time:
         n += 1
         br_row = 10 + n
-        # 请求转为multipart/form-data格式
-        data = {'memberinfos': battleInput, 'showDebugFormula': show_debug, 'maxRound': max_round,
-                'monsterGroup': monster_group, 'maxTimes': max_times}
-        r = requests.post(url, data=data)
-        soup = BeautifulSoup(r.text, 'html.parser')
-        json_data = delete_battle_report_head(soup.get_text(), battleInput, *HEAD_STRING)
+        report = request_data.get_report()
+        json_data = delete_battle_report_head(report.get_text(), battleInput, *HEAD_STRING)
         sht.cells(br_row, 1).value = save_as_json(json_data)
         if simple_parse:
             take_simple_parse(sht, simple_parse, json_data, br_row, n_sp, n)
@@ -110,7 +124,7 @@ def push_battle(shts, run_time=1, simple_parse=0, show_debug=0, max_round=0, mon
     sht.cells(10, 1).value = '已提交'
 
 
-def rush_pve_battle(shts, run_time=1, simple_parse=0, show_debug=0, max_round=0, start_row=10, try_sl=0, max_times=1):
+def rush_pve_battle(shts, request_data, run_time=1, simple_parse=0, start_row=10, try_sl=0):
     if not shts:
         shts = start_work()
     fresh_contents(shts)
@@ -146,16 +160,13 @@ def rush_pve_battle(shts, run_time=1, simple_parse=0, show_debug=0, max_round=0,
             max_round = 8
         else:
             max_round = 0
-        data = {'memberinfos': battleInput, 'showDebugFormula': show_debug, 'maxRound': max_round,
-                'monsterGroup': mg, 'maxTimes': max_times}
         n = n + 1
         i = 0
         sl_time = 0
         while i < run_time:
             br_row = 11 + i
-            r = requests.post(url, data=data)
-            soup = BeautifulSoup(r.text, 'html.parser')
-            json_data = delete_battle_report_head(soup.get_text(), battleInput, *HEAD_STRING)
+            report = request_data.get_report()
+            json_data = delete_battle_report_head(report.get_text(), battleInput, *HEAD_STRING)
             sht.cells(br_row, 1).value = save_as_json(json_data, custom=str(mg))
             if simple_parse:
                 take_simple_parse(sht, simple_parse, json_data, br_row, n_sp, mg)
@@ -169,7 +180,7 @@ def rush_pve_battle(shts, run_time=1, simple_parse=0, show_debug=0, max_round=0,
     sht.cells(10, 1).value = '已提交'
 
 
-def rush_pvp_battle(shts, run_time=1, simple_parse=0, show_debug=0, start_row=10, max_times=1):
+def rush_pvp_battle(shts, request_data, run_time=1, simple_parse=0, start_row=10):
     if not shts:
         shts = start_work()
     fresh_contents(shts)
@@ -213,15 +224,13 @@ def rush_pvp_battle(shts, run_time=1, simple_parse=0, show_debug=0, start_row=10
             if TOOL_DEBUG:
                 print(n)
             battle_input_pvp = '[' + ai + ',' + di + ']'
-            data = {'memberinfos': battle_input_pvp, 'showDebugFormula': show_debug, 'maxTimes': max_times}
             n = n + 1
             i = 0
             sl_time = 0
             while i < run_time:
                 br_row = 11 + i
-                r = requests.post(url, data=data)
-                soup = BeautifulSoup(r.text, 'html.parser')
-                json_data = delete_battle_report_head(soup.get_text(), battle_input_pvp, *HEAD_STRING)
+                report = request_data.get_report(battle_input_pvp)
+                json_data = delete_battle_report_head(report.get_text(), battle_input_pvp, *HEAD_STRING)
                 sht.cells(br_row, 1).value = save_as_json(json_data, custom=str(n))
                 if simple_parse:
                     take_simple_parse(sht, simple_parse, json_data, br_row, n_sp, n)
@@ -242,9 +251,9 @@ def take_simple_parse(sht, level, json_data, br_row, n_sp, n):
     rp = report_parse.BattleReport(json.loads(json_data, strict=False))
     if level >= 1:
         sht.range((n_sp + 10, 6)).value = \
-            [n, rp.win, len(rp.rounds), len(rp.heroes_final), sht.cells(br_row, 1).value]
+            [n, rp.win, rp.round, len(rp.heroes_final), sht.cells(br_row, 1).value]
     if level >= 2:
-        temp_value = [""]*BATTLE_PARSE_LEN
+        temp_value = [""] * BATTLE_PARSE_LEN
         for hero_stas in rp.stas:
             col = report_parse.hero_pos_id_trans(hero_stas['mid'], from1101=True, to19=True)
             if (col == 6) or (col == 14):
@@ -290,6 +299,7 @@ def start_work():
     finally:
         shts = wb.sheets
         print('excel_battlefield run success')
+        print('site: ', BATTLE_URL)
     # shts[SHEET_INFO].range('A:E').clear()
     shts[SHEET_INFO].range((1, 1)).value = [['模块名称', 'excel_battlefield'], ['当前版本', __version__]]
     if TOOL_DEBUG:
@@ -315,6 +325,7 @@ def main():
     """这个模块通过xlwings直接和EXCEL交互"""
     shts = start_work()
     while True:
+        request_data = RequestData()
         tool_command = input('回车开始战斗')
         if tool_command == 'refresh':
             shts = start_work()
@@ -331,19 +342,23 @@ def main():
             # 0 跑战报 参数1:次数 参数2:需要简析 参数3:战报显示公式 参数4:预留 参数5:怪物组ID
             if uc[0] == 1:
                 # 跑战报  怪物组ID为0时进行标准PVP对战,怪物组ID为有效monster_group_id,则进行PVE对战
-                push_battle(shts, run_time=int(uc[1]), simple_parse=uc[2], show_debug=int(uc[3]), monster_group=int(uc[5]))
+                request_data.show_debug = int(uc[3])
+                request_data.monster_group = int(uc[5])
+                push_battle(shts, request_data, run_time=int(uc[1]), simple_parse=uc[2])
 
             # 0 跑战报 参数1:次数 参数2:需要简析 参数3:战报显示公式 参数4:快跑起始行
             elif uc[0] == 3:
                 # 速刷PVE  怪物组ID为0时进行标准PVP对战,怪物组ID为有效monster_group_id,则进行PVE对战
-                rush_pve_battle(shts, max_times=int(uc[1]), simple_parse=uc[2], show_debug=int(uc[3]), start_row=int(uc[4]),
-                                try_sl=int(uc[5]))
+                request_data.max_times = int(uc[1])
+                request_data.show_debug = int(uc[3])
+                rush_pve_battle(shts, request_data, simple_parse=uc[2], start_row=int(uc[4]), try_sl=int(uc[5]))
 
             # 0 跑战报 参数1:次数 参数2:需要简析 参数3:战报显示公式 参数4:数据起始行号
             elif uc[0] == 4:
                 # 速刷PVP
-                rush_pvp_battle(shts, max_times=int(uc[1]), simple_parse=uc[2], show_debug=int(uc[3]),
-                                start_row=int(uc[4]))
+                request_data.max_times = int(uc[1])
+                request_data.show_debug = int(uc[3])
+                rush_pvp_battle(shts, request_data, simple_parse=uc[2], start_row=int(uc[4]))
             # 阵容自动创建
             elif uc[0] == 9:
                 # 阵容自动创建

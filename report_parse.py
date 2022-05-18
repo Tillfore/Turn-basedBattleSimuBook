@@ -67,6 +67,7 @@ class BattleReport:
         self.attackers = """进攻方英雄 list"""
         self.defensers = """防守方英雄 list"""
         self.init = """战斗初始化 obj"""
+        self.round = """战斗回合 int"""
         self.rounds = """战斗回合 obj"""
         self.stas = """战斗统计 obj"""
         self.win = """胜负情况 bool->int"""
@@ -79,8 +80,13 @@ class BattleReport:
         elif type(battle_report_dict) == str:
             self.__dict__ = self.dict2obj(json.loads(battle_report_dict, strict=False))
         try:
+            self.round = len(self.rounds)
+        except AttributeError:
+            pass
+        try:
             if self.win:
-                self.win = 1
+                if type(self.win) == 'boolean':
+                    self.win = 1
         except AttributeError:
             self.win = 0
             pass
