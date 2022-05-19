@@ -79,6 +79,7 @@ class RequestData:
         self.max_round = 0
         self.monster_group = 0
         self.max_times = 1
+        self.function_id = 32 #竞技场
 
     def get_report(self, battle_input=''):
         if battle_input == '':
@@ -86,7 +87,7 @@ class RequestData:
         url = BATTLE_URL
         # 请求转为multipart/form-data格式
         data = {'memberinfos': battle_input, 'showDebugFormula': self.show_debug_formula, 'maxRound': self.max_round,
-                'monsterGroup': self.monster_group, 'maxTimes': self.max_times}
+                'monsterGroup': self.monster_group, 'maxTimes': self.max_times, 'functionID': self.function_id}
         r = requests.post(url, data=data)
         soup = BeautifulSoup(r.text, 'html.parser')
         return soup
@@ -261,7 +262,7 @@ def take_simple_parse(sht, level, json_data, br_row, n_sp, n):
             temp_value[16 + col] = hero_stas.get('be_hurt') or 0
             temp_value[32 + col] = hero_stas.get('hurt') or 0
             temp_value[48 + col] = hero_stas.get('cure') or 0
-            temp_value[col] = temp_value[32 + col] + temp_value[48 + col]
+            temp_value[col] = eval(temp_value[32 + col]) + eval(temp_value[48 + col])
         sht.range((n_sp + 10, 12)).value = temp_value
 
 
@@ -321,6 +322,21 @@ def fresh_contents(shts):
     battleInputDefenser = s_dict["battleInput_defenser"]
 
 
+def make_pvp_team(shts):
+    n_sp = 0
+    while shts[SHEET_TEST].cells(n_sp + 190, 1).value:
+        range_text = 'C'+str(n_sp+190)+':G'+str(n_sp+190)
+        print(range_text)
+        shts[SHEET_TEST].range((182, 3)).value = shts[SHEET_TEST].range(range_text).value
+        fresh_contents(shts)
+        shts[SHEET_INFO].range((n_sp + 15, 13)).value = \
+            str(int(shts[SHEET_TEST].cells(n_sp + 190, 1).value)) + '.' + shts[SHEET_TEST].cells(n_sp + 190, 2).value
+        shts[SHEET_INFO].range((n_sp + 15, 14)).value = battleInputAttacker
+        shts[SHEET_INFO].range((n_sp + 15, 15)).value = shts[SHEET_INFO].range((n_sp + 15, 13)).value
+        shts[SHEET_INFO].range((n_sp + 15, 16)).value = battleInputDefenser
+        n_sp += 1
+
+
 def main():
     """这个模块通过xlwings直接和EXCEL交互"""
     shts = start_work()
@@ -351,6 +367,7 @@ def main():
                 # 速刷PVE  怪物组ID为0时进行标准PVP对战,怪物组ID为有效monster_group_id,则进行PVE对战
                 request_data.max_times = int(uc[1])
                 request_data.show_debug = int(uc[3])
+                request_data.function_id = 0
                 rush_pve_battle(shts, request_data, simple_parse=uc[2], start_row=int(uc[4]), try_sl=int(uc[5]))
 
             # 0 跑战报 参数1:次数 参数2:需要简析 参数3:战报显示公式 参数4:数据起始行号
@@ -362,8 +379,9 @@ def main():
             # 阵容自动创建
             elif uc[0] == 9:
                 # 阵容自动创建
-                import random_team_creator
-                random_team_creator.team_creator(shts, SHEET_TEAM_CREATOR)
+                make_pvp_team(shts)
+                # import random_team_creator
+                # random_team_creator.team_creator(shts, SHEET_TEAM_CREATOR)
 
             print('完成\n========================')
 
