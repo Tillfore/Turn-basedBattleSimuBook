@@ -324,6 +324,7 @@ def fresh_contents(shts):
 
 def make_pvp_team(shts):
     n_sp = 0
+    print('生成阵容数据……')
     while shts[SHEET_TEST].cells(n_sp + 190, 1).value:
         range_text = 'C'+str(n_sp+190)+':O'+str(n_sp+190)
         shts[SHEET_TEST].range((182, 3)).value = shts[SHEET_TEST].range(range_text).value
@@ -331,10 +332,11 @@ def make_pvp_team(shts):
         print_col = shts[SHEET_TEST].range((188, 3)).value
         shts[SHEET_TEST].range((n_sp + 10, print_col)).value = \
             str(int(shts[SHEET_TEST].cells(n_sp + 190, 1).value)) + '.' + shts[SHEET_TEST].cells(n_sp + 190, 2).value
-        shts[SHEET_INFO].range((n_sp + 10, print_col+1)).value = battleInputAttacker
-        shts[SHEET_INFO].range((n_sp + 10, print_col+2)).value = shts[SHEET_INFO].range((n_sp + 15, 13)).value
-        shts[SHEET_INFO].range((n_sp + 10, print_col+3)).value = battleInputDefenser
+        shts[SHEET_TEST].range((n_sp + 10, print_col+1)).value = battleInputAttacker
+        shts[SHEET_TEST].range((n_sp + 10, print_col+2)).value = shts[SHEET_INFO].range((n_sp + 15, 13)).value
+        shts[SHEET_TEST].range((n_sp + 10, print_col+3)).value = battleInputDefenser
         n_sp += 1
+    print('阵容数据更新完成')
 
 
 def main():
