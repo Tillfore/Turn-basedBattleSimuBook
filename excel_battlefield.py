@@ -325,15 +325,15 @@ def fresh_contents(shts):
 def make_pvp_team(shts):
     n_sp = 0
     while shts[SHEET_TEST].cells(n_sp + 190, 1).value:
-        range_text = 'C'+str(n_sp+190)+':G'+str(n_sp+190)
-        print(range_text)
+        range_text = 'C'+str(n_sp+190)+':O'+str(n_sp+190)
         shts[SHEET_TEST].range((182, 3)).value = shts[SHEET_TEST].range(range_text).value
         fresh_contents(shts)
-        shts[SHEET_INFO].range((n_sp + 15, 13)).value = \
+        print_col = shts[SHEET_TEST].range((188, 3)).value
+        shts[SHEET_TEST].range((n_sp + 10, print_col)).value = \
             str(int(shts[SHEET_TEST].cells(n_sp + 190, 1).value)) + '.' + shts[SHEET_TEST].cells(n_sp + 190, 2).value
-        shts[SHEET_INFO].range((n_sp + 15, 14)).value = battleInputAttacker
-        shts[SHEET_INFO].range((n_sp + 15, 15)).value = shts[SHEET_INFO].range((n_sp + 15, 13)).value
-        shts[SHEET_INFO].range((n_sp + 15, 16)).value = battleInputDefenser
+        shts[SHEET_INFO].range((n_sp + 10, print_col+1)).value = battleInputAttacker
+        shts[SHEET_INFO].range((n_sp + 10, print_col+2)).value = shts[SHEET_INFO].range((n_sp + 15, 13)).value
+        shts[SHEET_INFO].range((n_sp + 10, print_col+3)).value = battleInputDefenser
         n_sp += 1
 
 
@@ -373,15 +373,12 @@ def main():
             # 0 跑战报 参数1:次数 参数2:需要简析 参数3:战报显示公式 参数4:数据起始行号
             elif uc[0] == 4:
                 # 速刷PVP
+                if uc[5] == 1:
+                    make_pvp_team(shts)
                 request_data.max_times = int(uc[1])
                 request_data.show_debug = int(uc[3])
                 rush_pvp_battle(shts, request_data, simple_parse=uc[2], start_row=int(uc[4]))
             # 阵容自动创建
-            elif uc[0] == 9:
-                # 阵容自动创建
-                make_pvp_team(shts)
-                # import random_team_creator
-                # random_team_creator.team_creator(shts, SHEET_TEAM_CREATOR)
 
             print('完成\n========================')
 
