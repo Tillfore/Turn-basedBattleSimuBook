@@ -151,16 +151,17 @@ def rush_pve_battle(shts, request_data, run_time=1, simple_parse=0, start_row=10
             sht.cells(10, 1).value = '已提交'
             return
         mg = int(monster_groups[n])
+        request_data.monster_group = mg
         if TOOL_DEBUG:
             print(mg)
         # 材料本特殊处理
         if TRIAL_LEVEL_START <= mg <= TRIAL_LEVEL_END:
-            max_round = 8
+            request_data.max_round = 8
         # 公会副本特殊处理
         elif GUILD_LEVEL_START <= mg <= GUILD_LEVEL_END:
-            max_round = 8
+            request_data.max_round = 8
         else:
-            max_round = 0
+            request_data.max_round = 0
         n = n + 1
         i = 0
         sl_time = 0
@@ -178,6 +179,7 @@ def rush_pve_battle(shts, request_data, run_time=1, simple_parse=0, start_row=10
                     sl_time += 1
                     i = 0
             # time.sleep(1)
+    request_data.monster_group = 0
     sht.cells(10, 1).value = '已提交'
 
 
